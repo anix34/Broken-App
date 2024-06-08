@@ -1,58 +1,32 @@
-const fs = require("fs");
-const axios = require("axios");
-const http = require('http');
+const fs = require('fs');
+const process = require('process');
+const axios = require('axios');
 
-
-
-/* Get URL from txt */
-const readline = require('readline');
-
-function sleep(time) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, time);
-  });
+function cat(path) {
+    fs.readFile('path', 'utf8', function(err, data) {
+        if (err) {
+            console.error(err);
+            process.exit(1);
+        } else {
+            console.log(path)
+        }
+    })
 }
 
-async function processLineByLine() {
-  const fileStream = fs.createReadStream('urls.txt');
-
-  const rl = readline.createInterface({
-    input: fileStream,
-    crlfDelay: Infinity
-  });
-
-  for await (const line of rl) {
-    console.log(line); 
-    //Having trouble to download URL from txt file to a new file
-    await sleep(1000);
-  }
-  }
-
-processLineByLine();
-
-
-// download html
-var util = require("util")
-
-var options = {
-    host: "www.google.com",
-    path: "/"
-};
-
-var content = "";   
-
-var req = http.request(options, function(res) {
-    res.setEncoding("utf8");
-    res.on("data", function (chunk) {
-        content += chunk;
-    });
-
-    res.on("end", function () {
-        util.log(content);
-    });
-});
-
-req.end();
-
-
-  
+async function webCat(url) {
+    try {
+        let resp = await axios.get(url);
+        console.log(resp.data);
+    } catch (err) {
+        console.error(`Error fetching ${url}: ${err}`);
+        process.exit(1);
+        }
+    }
+    
+    let path = process.argv[2];
+    
+    if (path.slice(0,4) === 'http') {
+        webCat(path);
+    } else {
+        cat(path);
+    }
