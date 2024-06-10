@@ -2,31 +2,40 @@ const fs = require('fs');
 const process = require('process');
 const axios = require('axios');
 
-function cat(path) {
-    fs.readFile('path', 'utf8', function(err, data) {
-        if (err) {
-            console.error(err);
-            process.exit(1);
-        } else {
-            console.log(path)
-        }
-    })
+function getUrls(path) {
+  fs.readFile(path, 'utf8', (err, data) => {
+    if (err) {
+      console.error(`Error reading ${path}: ${err}`);
+      process.exit(1);
+    } else {
+      const urls = data.split('\n').filter((url) => {
+        return url !== '';
+      });
+      getUrlData(urls);
+    }
+  });
 }
 
-async function webCat(url) {
+function getUrlData(urls) {
+  urls.forEach(async (url) => {
+    const afterSecondSlashIdx = url.indexOf('/') + 2;
+    const thirdSlashIdx = url.indexOf('/', afterSecondSlashIdx) !== -1 ? url.indexOf('/', afterSecondSlashIdx) : null;
+    const fileName = url.slice(afterSecondSlashIdx, thirdSlashIdx || url.length) + '.txt';
     try {
-        let resp = await axios.get(url);
-        console.log(resp.data);
+      const resp = await axios.get(url, {timeout: 5000});
+      handleOutput(resp.data, fileName)
     } catch (err) {
-        console.error(`Error fetching ${url}: ${err}`);
-        process.exit(1);
-        }
+      console.error(`Could not download ${url}: ${err}`);
     }
-    
-    let path = process.argv[2];
-    
-    if (path.slice(0,4) === 'http') {
-        webCat(path);
-    } else {
-        cat(path);
-    }
+  });
+}
+
+function handleOutput(text, outputFile) {
+  fs.writeFile(outputFile, text, 'utf8', function(err) {
+    if (err) {
+      console.error(`Couldn't write ${outputFile}: ${err}`);
+    } else console.log(`Wrote to ${outputFile}`)
+  });
+}
+
+getUrls(process.argv[2]);
